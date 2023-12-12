@@ -78,7 +78,7 @@ class PhotoGalleryFragment : Fragment() {
             lateinit var itemImageView: ImageView
             val galleryItem = galleryItems[position]
             Picasso.get()
-                .load(galleryItem.url_s)
+                .load(galleryItem.url)
                 .placeholder(R.drawable.bill_up_close)
                 .into(holder.bindImageView)
 
