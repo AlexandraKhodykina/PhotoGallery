@@ -19,8 +19,6 @@ class GalleryRepository private constructor(context: Context) {
     private fun GalleryItem.toItem(): Item {
         return Item(title, id, url)
     }
-
-
     fun addPhoto(photo: GalleryItem) {
         val item = photo.toItem()
         executor.execute {
@@ -29,13 +27,11 @@ class GalleryRepository private constructor(context: Context) {
             }
         }
     }
-
     fun deleteAllPhotos() {
         executor.execute {
             database.galleryDao().deletephotos()
         }
     }
-
     companion object {
         private var INSTANCE: GalleryRepository? = null
         fun initialize(context: Context) {

@@ -10,16 +10,17 @@ import com.bignerdranch.android.photogallery.api.FlickrFetchr
 
 class PhotoGalleryViewModel (private val app: Application) : AndroidViewModel(app) {
 
+    private val galleryRepository = GalleryRepository.get()
     val galleryItemLiveData: LiveData<List<GalleryItem>>
+    val itemLiveData: LiveData<List<Item>> = galleryRepository.getPhotos()
+
     private val flickrFetchr = FlickrFetchr()
     private val mutableSearchTerm = MutableLiveData<String>()
     val searchTerm: String
         get() = mutableSearchTerm.value ?: ""
 
-
     init {
         mutableSearchTerm.value = QueryPreferences.getStoredQuery(app)
-        //galleryItemLiveData = Transformations.switchMap(mutableSearchTerm) { searchTerm ->
         galleryItemLiveData = mutableSearchTerm.switchMap { searchTerm ->
             if (searchTerm.isBlank()) {
                 flickrFetchr.fetchPhotos()
@@ -32,5 +33,14 @@ class PhotoGalleryViewModel (private val app: Application) : AndroidViewModel(ap
         QueryPreferences.setStoredQuery(app, query)
         mutableSearchTerm.value = query
     }
+    fun showDatabaseGallery(){
+        galleryRepository.getPhotos()
+    }
 
+    fun addPhoto(photo: GalleryItem) {
+        galleryRepository.addPhoto(photo)
+    }
+    fun deletephotos(){
+        galleryRepository.deleteAllPhotos()
+    }
 }

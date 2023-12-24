@@ -40,18 +40,24 @@ private const val TAG = "PhotoGalleryFragment"
 private const val POLL_WORK = "POLL_WORK"
 
 class PhotoGalleryFragment : Fragment() {
+    interface Callbacks {
+        fun onDatabaseSelected()
+        fun onAddSelected(galleryItem: GalleryItem)
+        fun onDeleteSelected()
+    }
+    private var callbacks: Callbacks? = null
 
     private lateinit var photoGalleryViewModel: PhotoGalleryViewModel
     private lateinit var photoRecyclerView: RecyclerView
-
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callbacks = context as Callbacks?
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setHasOptionsMenu(true)
-
         photoGalleryViewModel = ViewModelProviders.of(this).get(PhotoGalleryViewModel::class.java)
     }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -70,10 +76,30 @@ class PhotoGalleryFragment : Fragment() {
                 photoRecyclerView.adapter = PhotoAdapter(galleryItems)
             })
     }
-    private class PhotoHolder(itemImageView: ImageView)
-        : RecyclerView.ViewHolder(itemImageView)
+    override fun onDetach() {
+        super.onDetach()
+        callbacks = null
+    }
+    private inner class PhotoHolder(itemImageView: ImageView) :
+        RecyclerView.ViewHolder(itemImageView), View.OnClickListener
     {
         val bindImageView: (ImageView) = itemImageView
+        private lateinit var galleryItem: GalleryItem
+
+        init {
+            bindImageView.setOnClickListener(this)
+        }
+        fun bind(galleryItem: GalleryItem) {
+            this.galleryItem = galleryItem
+        }
+        override fun onClick(v: View) {
+            Toast.makeText(
+                context,
+                "Saved info about: ${galleryItem.title}",
+                Toast.LENGTH_SHORT
+            ).show()
+            callbacks?.onAddSelected(galleryItem)
+        }
     }
     private inner class PhotoAdapter(private val galleryItems: List<GalleryItem>)
         : RecyclerView.Adapter<PhotoHolder>() {
@@ -96,26 +122,25 @@ class PhotoGalleryFragment : Fragment() {
                 .load(galleryItem.url)
                 .placeholder(R.drawable.bill_up_close)
                 .into(holder.bindImageView)
-
+                holder.bind(galleryItem)
         }
     }
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
         inflater.inflate(R.menu.fragment_photo_gallery, menu)
+
         val searchItem: MenuItem = menu.findItem(R.id.menu_item_search)
         val searchView = searchItem.actionView
                 as SearchView
         searchView.apply {
             setOnQueryTextListener(object :
                 SearchView.OnQueryTextListener {
-                override fun
-                        onQueryTextSubmit(queryText: String): Boolean {
+                override fun onQueryTextSubmit(queryText: String): Boolean {
                     Log.d(TAG, "QueryTextSubmit: $queryText")
                     photoGalleryViewModel.fetchPhotos(queryText)
                     return true
                 }
-                override fun
-                        onQueryTextChange(queryText: String): Boolean {
+                override fun onQueryTextChange(queryText: String): Boolean {
                     Log.d(TAG, "QueryTextChange: $queryText")
                     return false
                 }
@@ -141,8 +166,7 @@ class PhotoGalleryFragment : Fragment() {
                 true
             }
             R.id.menu_item_toggle_polling -> {
-                val isPolling =
-                    QueryPreferences.isPolling(requireContext())
+                val isPolling = QueryPreferences.isPolling(requireContext())
                 if (isPolling) {
                     WorkManager.getInstance().cancelUniqueWork(POLL_WORK)
                     QueryPreferences.setPolling(requireContext(), false)
@@ -159,12 +183,23 @@ class PhotoGalleryFragment : Fragment() {
                 activity?.invalidateOptionsMenu()
                 return true
             }
+            R.id.menu_item_database_photos -> {
+                callbacks?.onDatabaseSelected()
+                true
+            }
+            R.id.menu_item_delete_database_photos -> {
+                callbacks?.onDeleteSelected()
+                Toast.makeText(
+                    context,
+                    R.string.delete_photos_from_database_success,
+                    Toast.LENGTH_SHORT
+                ).show()
+                true
+            }
             else ->
                 super.onOptionsItemSelected(item)
         }
     }
-
-
     companion object {
         fun newInstance() = PhotoGalleryFragment()
     }
